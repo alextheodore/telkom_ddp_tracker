@@ -23,6 +23,7 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, onSave, onDelete }
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Partial<Project>>(DEFAULT_PROJECT_TEMPLATE);
   const [viewMode, setViewMode] = useState<ViewMode>('gallery');
+  const [selectedTech, setSelectedTech] = useState('');
 
   const handleOpenModal = (project?: Project) => {
     if (project) {
@@ -58,11 +59,22 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, onSave, onDelete }
 
   const inputClass = "w-full border border-gray-400 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none placeholder-gray-500 dark:placeholder-gray-400";
 
+  // --- Filtering Logic ---
+  const uniqueTechStacks = useMemo(() => {
+    const allTech = projects.flatMap(p => p.techStack);
+    return Array.from(new Set(allTech)).sort();
+  }, [projects]);
+
+  const filteredProjects = useMemo(() => {
+    if (!selectedTech) return projects;
+    return projects.filter(p => p.techStack.includes(selectedTech));
+  }, [projects, selectedTech]);
+
   // --- Timeline Logic ---
   const timelineData = useMemo(() => {
-    if (projects.length === 0) return null;
+    if (filteredProjects.length === 0) return null;
 
-    const validProjects = projects.filter(p => p.startDate || p.endDate);
+    const validProjects = filteredProjects.filter(p => p.startDate || p.endDate);
     if (validProjects.length === 0) return null;
 
     let minDate = new Date();
@@ -109,7 +121,7 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, onSave, onDelete }
     }
 
     return { minDate, maxDate, totalDuration, months };
-  }, [projects]);
+  }, [filteredProjects]);
 
   const todayPercent = useMemo(() => {
     if (!timelineData) return -1;
@@ -127,7 +139,17 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, onSave, onDelete }
           <Icons.Project className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
           Internship Projects
         </h2>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          {/* Tech Stack Filter */}
+          <select 
+            value={selectedTech} 
+            onChange={(e) => setSelectedTech(e.target.value)}
+            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+          >
+            <option value="">All Tech Stacks</option>
+            {uniqueTechStacks.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+
           {/* View Toggle */}
           <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
             <button 
@@ -157,12 +179,12 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, onSave, onDelete }
 
       {viewMode === 'gallery' ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-           {projects.length === 0 ? (
+           {filteredProjects.length === 0 ? (
             <div className="col-span-full py-12 text-center text-gray-400 dark:text-gray-500 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-lg">
-              No projects added yet.
+              {projects.length === 0 ? "No projects added yet." : "No projects match the selected filter."}
             </div>
           ) : (
-            projects.map(project => (
+            filteredProjects.map(project => (
               <div key={project.id} onClick={() => handleOpenModal(project)} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden group cursor-pointer hover:shadow-lg transition-all transform hover:-translate-y-1">
                 <div className={`h-24 bg-gradient-to-r ${getGradient(project.name)} relative`}>
                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -200,9 +222,9 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, onSave, onDelete }
       ) : (
         /* Timeline View */
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {projects.length === 0 ? (
+          {filteredProjects.length === 0 ? (
              <div className="p-12 text-center text-gray-400 dark:text-gray-500">
-                No projects to display on timeline.
+                {projects.length === 0 ? "No projects to display on timeline." : "No projects match the selected filter."}
              </div>
           ) : timelineData ? (
              <div className="overflow-x-auto">
@@ -249,7 +271,7 @@ export const Projects: React.FC<ProjectsProps> = ({ projects, onSave, onDelete }
 
                     {/* Rows */}
                     <div className="space-y-3 relative z-10">
-                      {projects.map(project => {
+                      {filteredProjects.map(project => {
                         const startDate = project.startDate ? new Date(project.startDate) : new Date();
                         const endDate = project.endDate ? new Date(project.endDate) : new Date(startDate.getTime() + 86400000 * 30);
                         
