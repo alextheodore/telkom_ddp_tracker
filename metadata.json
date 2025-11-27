@@ -1,0 +1,5 @@
+{
+  "name": "Telkom DDP Internship Tracker",
+  "description": "A Notion-style logbook and project tracker for Telkom DDP interns, featuring Gemini-powered summarization and insights.",
+  "requestFramePermissions": []
+}
